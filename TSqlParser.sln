@@ -5,6 +5,10 @@ VisualStudioVersion = 15.0.27428.2015
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSqlParser.Core", "TSqlParser.Core\TSqlParser.Core.csproj", "{477DC685-D855-4099-93A3-A72B27A706A7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSqlParser.Console", "TSqlParser.Console\TSqlParser.Console.csproj", "{9CAC731B-B5FE-421C-BF72-4260B4C52D31}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TSqlParser.Tests", "TSqlParser.Tests\TSqlParser.Tests.csproj", "{8698F2D4-BE5D-4B15-8C8F-1A015AC44B10}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{477DC685-D855-4099-93A3-A72B27A706A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{477DC685-D855-4099-93A3-A72B27A706A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{477DC685-D855-4099-93A3-A72B27A706A7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9CAC731B-B5FE-421C-BF72-4260B4C52D31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9CAC731B-B5FE-421C-BF72-4260B4C52D31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9CAC731B-B5FE-421C-BF72-4260B4C52D31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9CAC731B-B5FE-421C-BF72-4260B4C52D31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8698F2D4-BE5D-4B15-8C8F-1A015AC44B10}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8698F2D4-BE5D-4B15-8C8F-1A015AC44B10}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8698F2D4-BE5D-4B15-8C8F-1A015AC44B10}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8698F2D4-BE5D-4B15-8C8F-1A015AC44B10}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
