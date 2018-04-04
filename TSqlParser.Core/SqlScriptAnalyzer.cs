@@ -247,7 +247,7 @@ namespace TSqlParser.Core
                         {
                             if (item is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification)
                             {
-                                var items = ExtractTablesUsedInFromClause(querySpecification.FromClause);
+                                var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause);
                                 results.AddIfNotExists(items);
                             }
 
@@ -291,7 +291,7 @@ namespace TSqlParser.Core
         {
             if (insertStatement.InsertSpecification.InsertSource != null && insertStatement.InsertSpecification.InsertSource is SelectInsertSource selectInsertSource && selectInsertSource.Select is QuerySpecification selectQuerySpecification) //selectinsertsource
             {
-                var items = ExtractTablesUsedInFromClause(selectQuerySpecification.FromClause);
+                var items = ExtractTablesFromQuerySpecification(selectQuerySpecification); //ExtractTablesUsedInFromClause(selectQuerySpecification.FromClause);
                 if (cteModel.Count > 0)
                 {
                     foreach (var cte in cteModel)
@@ -314,7 +314,7 @@ namespace TSqlParser.Core
             string cteName = cte.ExpressionName.Value;
             if (cte.QueryExpression is QuerySpecification querySpecification)
             {
-                var items = ExtractTablesUsedInFromClause(querySpecification.FromClause);
+                var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause);
 
                 // flatten out self refrencing ctes
                 // ;with cte1 as (),
@@ -337,9 +337,63 @@ namespace TSqlParser.Core
         {
             if(selectStatement.QueryExpression is QuerySpecification selectQuerySpecification)
             {
-                var result = ExtractTablesUsedInFromClause(selectQuerySpecification.FromClause);
+                var result = ExtractTablesFromQuerySpecification(selectQuerySpecification); // ExtractTablesUsedInFromClause(selectQuerySpecification.FromClause);
+                foreach(SelectScalarExpression scalarExpression in selectQuerySpecification.SelectElements)
+                {
+                    if(scalarExpression.Expression is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification)
+                    {
+                        var items = ExtractTablesFromQuerySpecification(querySpecification);
+                        results.AddIfNotExists(items);
+                    }
+                }
                 results.AddIfNotExists(result);
             }
+        }
+
+        private List<TableParsingResult> ExtractTablesFromQuerySpecification(QuerySpecification querySpecification)
+        {
+            List<TableParsingResult> result = new List<TableParsingResult>();
+            var items = ExtractTablesUsedInFromClause(querySpecification.FromClause);
+            result.AddIfNotExists(items);
+            foreach(var selectExpression in querySpecification.SelectElements)
+            {
+                if(selectExpression is SelectScalarExpression selectScalarExpression)
+                {
+                    if (selectScalarExpression.Expression is ScalarSubquery scalarSubQuery && scalarSubQuery.QueryExpression is QuerySpecification querySpecificationChild)
+                    {
+                        var items2 = ExtractTablesFromQuerySpecification(querySpecificationChild); // recursion path
+                        result.AddIfNotExists(items2);
+                    }
+                    else if(selectScalarExpression.Expression is SearchedCaseExpression searchedCaseExpression)
+                    {
+                        foreach(SearchedWhenClause whenClause in searchedCaseExpression.WhenClauses)
+                        {
+                            if(whenClause.ThenExpression is BinaryExpression binaryExpression && binaryExpression.SecondExpression is ScalarSubquery scalarSubQuery2 && scalarSubQuery2.QueryExpression is QuerySpecification querySpecificationGrandChild)
+                            {
+                                //binaryExpression.SecondExpression
+                                var items3 = ExtractTablesFromQuerySpecification(querySpecificationGrandChild);
+                                result.AddIfNotExists(items3);
+                            }
+                        }
+                    }
+                    else if(selectScalarExpression.Expression is FunctionCall functionCall)
+                    {                        
+                        foreach(var item in functionCall.Parameters)
+                        {
+                            if(item is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification4)
+                            {
+                                var items4 = ExtractTablesFromQuerySpecification(querySpecification4);
+                                result.AddIfNotExists(items4);
+                            }
+                        }
+                    }
+                }
+                else //if(selectExpression is SearchedCaseExpression searchedCaseExpression)
+                {
+                    Debug.WriteLine($"{selectExpression.GetType().FullName} not analyzed");
+                }
+            }
+            return result;
         }
 
         private void AnalyzeMergeStatement(MergeStatement mergeStatement, ref ParserResults results)
@@ -350,9 +404,9 @@ namespace TSqlParser.Core
                 results.AddIfNotExists(tableName, SqlOperationType.INSERT, alias);
                 results.AddIfNotExists(tableName, SqlOperationType.UPDATE, alias);
                 
-                if (mergeStatement.MergeSpecification.TableReference is QueryDerivedTable mergeQueryDerivedTable && mergeQueryDerivedTable.QueryExpression is QuerySpecification mergeQuerySpecification)
+                if (mergeStatement.MergeSpecification.TableReference is QueryDerivedTable mergeQueryDerivedTable && mergeQueryDerivedTable.QueryExpression is QuerySpecification querySpecification)
                 {
-                    var result = ExtractTablesUsedInFromClause(mergeQuerySpecification.FromClause);
+                    var result = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(mergeQuerySpecification.FromClause);
                     results.AddIfNotExists(result);
                 }
             }
@@ -375,10 +429,8 @@ namespace TSqlParser.Core
             
             foreach (TableReference tableReference in fromClause.TableReferences)
             {
-                if(tableReference is JoinTableReference joinTableReference) //Qualified or UnqualifiedJoin
-                {
-                    //JoinTableReference joinTableReference = unqualifiedJoin;
-                    
+                if(tableReference is JoinTableReference joinTableReference) // can be of type Qualified or UnqualifiedJoin but we care only about the abstract type
+                {   
                     do
                     {
                         if (joinTableReference.SecondTableReference is NamedTableReference namedTableReference)
@@ -399,11 +451,11 @@ namespace TSqlParser.Core
                             if (queryDerivedTable.Alias != null)
                                 alias = queryDerivedTable.Alias.Value;
 
-                            var items = ExtractTablesUsedInFromClause(querySpecification.FromClause); // recursion path
+                            var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause); // recursion path
                             if (!string.IsNullOrWhiteSpace(alias))
                                 items.ForEach(x => x.Alias = alias);
 
-                            result.AddRange(items);
+                            result.AddIfNotExists(items);
                         }
 
                         joinTableReference = joinTableReference.FirstTableReference as JoinTableReference;
@@ -421,11 +473,11 @@ namespace TSqlParser.Core
                     if(queryDerivedTable.Alias != null)
                         alias = queryDerivedTable.Alias.Value;
 
-                    var items = ExtractTablesUsedInFromClause(querySpecification.FromClause); // recursion path
+                    var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause); // recursion path
                     if (!string.IsNullOrWhiteSpace(alias))
                         items.ForEach(x => x.Alias = alias);
 
-                    result.AddRange(items);
+                    result.AddIfNotExists(items);
                 }
                 else
                 {

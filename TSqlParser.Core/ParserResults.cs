@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace TSqlParser.Core
 {
@@ -63,7 +64,7 @@ namespace TSqlParser.Core
             if(this.TableParsingResults.Count > 0)
                 sb.AppendLine($"\tTables touched ::");
 
-            foreach (var table in this.TableParsingResults)
+            foreach (var table in this.TableParsingResults.OrderBy(x=>x.TableName))
             {
                 sb.AppendLine($"\t\t{table.TableName} - {table.OperationType}");
             }

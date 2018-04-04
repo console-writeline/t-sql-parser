@@ -28,5 +28,10 @@ namespace TSqlParser.Core
                 });
             }
         }
+
+        public static void AddIfNotExists(this List<TableParsingResult> list, List<TableParsingResult> toAdd)
+        {
+            toAdd.ForEach(x => list.AddIfNotExists(x.TableName, x.OperationType, x.Alias));
+        }
     }
 }
