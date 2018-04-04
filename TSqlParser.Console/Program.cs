@@ -20,6 +20,10 @@ namespace TSqlParser.Console
             _sqlText = File.ReadAllText(ConfigurationManager.AppSettings["sql-text-input-file"]);
 
             var actual = _analyzer.AnalyzeSqlTextAsync(_sqlText).Result;
+
+            System.Console.WriteLine(actual.ToString());
+            System.Console.WriteLine("\r\nPress any key to exit ..");
+            System.Console.ReadLine();
         }
     }
 }
