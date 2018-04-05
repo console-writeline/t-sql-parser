@@ -22,10 +22,10 @@ namespace TSqlParser.Core
         {
             _sqlVersion = sqlVersion;
         }
-        
+
         private t.TSqlParser CreateSqlParser()
         {
-            switch(_sqlVersion)
+            switch (_sqlVersion)
             {
                 case SqlVersion.Sql80:
                     return new t.TSql80Parser(true);
@@ -34,7 +34,7 @@ namespace TSqlParser.Core
                 case SqlVersion.Sql100:
                     return new t.TSql100Parser(true);
                 case SqlVersion.Sql110:
-                    return new t.TSql110Parser(true);                
+                    return new t.TSql110Parser(true);
                 case SqlVersion.Sql130:
                     return new t.TSql130Parser(true);
                 case SqlVersion.Sql140:
@@ -94,82 +94,87 @@ namespace TSqlParser.Core
             return await Task.FromResult(results);
         }
 
-        private void AnalyzeCreateProcedureStatement(CreateProcedureStatement createProcedureStatement, ref ParserResults results)
-        {
-            //((BeginEndBlockStatement)((CreateProcedureStatement)statement).StatementList.Statements[0]).StatementList.Statements
-            if (createProcedureStatement.StatementList.Statements.Count == 0)
-                return;
-
-            AnalyzeTsqlStatementList(createProcedureStatement.StatementList, ref results);
-        }
-
-        private void AnalyzeBeginEndBlockStatement(BeginEndBlockStatement beginEndBlockStatement, ref ParserResults results)
-        {
-            if (beginEndBlockStatement.StatementList.Statements.Count == 0)
-                return;
-
-            AnalyzeTsqlStatementList(beginEndBlockStatement.StatementList, ref results);
-        }
-
-        private void AnalyzeTryCatchStatement(TryCatchStatement tryCatchStatement, ref ParserResults results)
-        {
-            if (tryCatchStatement.TryStatements.Statements.Count == 0)
-                return;
-
-            AnalyzeTsqlStatementList(tryCatchStatement.TryStatements, ref results);
-            AnalyzeTsqlStatementList(tryCatchStatement.CatchStatements, ref results);
-
-        }
-
-        private void AnalyzeTsqlStatementList(StatementList statementList, ref ParserResults results)
+        private void AnalyzeTsqlStatementList(StatementList statementList, ParserResults results)
         {
             foreach (TSqlStatement statement in statementList.Statements)
-            {                
+            {
                 results = AnalyzeTsqlStatement(results, statement);
             }
         }
 
         private ParserResults AnalyzeTsqlStatement(ParserResults results, TSqlStatement statement)
         {
-            if (statement is CreateProcedureStatement createProcedureStatement)
-                AnalyzeCreateProcedureStatement(createProcedureStatement, ref results); // recursion path
-            if (statement is BeginEndBlockStatement beginEndBlockStatement)
-                AnalyzeBeginEndBlockStatement(beginEndBlockStatement, ref results); // recursion path
-            else if (statement is UpdateStatement updateStatement)
-                AnalyzeUpdateStatement(updateStatement, ref results);
-            else if (statement is InsertStatement insertStatement)
-                AnalyzeInsertStatement(insertStatement, ref results);
-            else if (statement is SelectStatement selectStatement)
-                AnalyzeSelectStatement(selectStatement, ref results);
-            else if (statement is MergeStatement mergeStatement)
-                AnalyzeMergeStatement(mergeStatement, ref results);
-            else if (statement is DeleteStatement deleteStatement)
-                AnalyzeDeleteStatement(deleteStatement, ref results);
-            else if (statement is TryCatchStatement tryCatchStatement)
-                AnalyzeTryCatchStatement(tryCatchStatement, ref results); // recursion path
-            else if (statement is WhileStatement whileStatement)
-                AnalyzeWhileStatement(whileStatement, ref results);
-            else if (statement is ExecuteStatement executeStatement)
-                AnalyzeExecuteStatement(executeStatement, ref results);
-            else if (statement is IfStatement ifStatement)
-            {
+            if (statement is null)
+                return results;
 
-            }
+            if (statement is CreateProcedureStatement createProcedureStatement)
+                AnalyzeCreateProcedureStatement(createProcedureStatement, results); 
+            if (statement is BeginEndBlockStatement beginEndBlockStatement)
+                AnalyzeBeginEndBlockStatement(beginEndBlockStatement, results); 
+            else if (statement is UpdateStatement updateStatement)
+                AnalyzeUpdateStatement(updateStatement, results);
+            else if (statement is InsertStatement insertStatement)
+                AnalyzeInsertStatement(insertStatement, results);
+            else if (statement is SelectStatement selectStatement)
+                AnalyzeSelectStatement(selectStatement, results);
+            else if (statement is MergeStatement mergeStatement)
+                AnalyzeMergeStatement(mergeStatement, results);
+            else if (statement is DeleteStatement deleteStatement)
+                AnalyzeDeleteStatement(deleteStatement, results);
+            else if (statement is TryCatchStatement tryCatchStatement)
+                AnalyzeTryCatchStatement(tryCatchStatement, results); 
+            else if (statement is WhileStatement whileStatement)
+                AnalyzeWhileStatement(whileStatement, results);
+            else if (statement is ExecuteStatement executeStatement)
+                AnalyzeExecuteStatement(executeStatement, results);
+            else if (statement is IfStatement ifStatement)
+                AnalyzeIfStatement(ifStatement, results);
             else
             {
+                //TODO
                 Debug.WriteLine($"found statement type (not analyzed): {statement.GetType().FullName}");
             }
             return results;
         }
 
-        private void AnalyzeExecuteStatement(ExecuteStatement executeStatement, ref ParserResults results)
+        #region Analyze TSqlStatement methods
+        private void AnalyzeCreateProcedureStatement(CreateProcedureStatement createProcedureStatement, ParserResults results)
         {
-            if(executeStatement.ExecuteSpecification.ExecutableEntity is ExecutableProcedureReference executableProcedureReference)
+            //((BeginEndBlockStatement)((CreateProcedureStatement)statement).StatementList.Statements[0]).StatementList.Statements
+            if (createProcedureStatement.StatementList.Statements.Count == 0)
+                return;
+
+            AnalyzeTsqlStatementList(createProcedureStatement.StatementList, results);
+        }
+
+        private void AnalyzeBeginEndBlockStatement(BeginEndBlockStatement beginEndBlockStatement, ParserResults results)
+        {
+            if (beginEndBlockStatement.StatementList.Statements.Count == 0)
+                return;
+
+            AnalyzeTsqlStatementList(beginEndBlockStatement.StatementList, results);
+        }
+
+        private void AnalyzeTryCatchStatement(TryCatchStatement tryCatchStatement, ParserResults results)
+        {
+            if (tryCatchStatement.TryStatements.Statements.Count == 0)
+                return;
+
+            AnalyzeTsqlStatementList(tryCatchStatement.TryStatements, results);
+            AnalyzeTsqlStatementList(tryCatchStatement.CatchStatements, results);
+
+        }
+
+        private void AnalyzeExecuteStatement(ExecuteStatement executeStatement, ParserResults results)
+        {
+            executeStatement.PrintTSqlStatementBlockToDebugConsole();
+
+            if (executeStatement.ExecuteSpecification.ExecutableEntity is ExecutableProcedureReference executableProcedureReference)
             {
                 //executableProcedureReference.ProcedureReference.ProcedureReference.Name.Identifiers
                 string schema = "";
                 string procedureName = "";
-                
+
 
                 if (executableProcedureReference.ProcedureReference.ProcedureReference.Name.Identifiers.Count == 1)
                 {
@@ -186,23 +191,35 @@ namespace TSqlParser.Core
                 if (!results.ProceduresInvoked.Any(x => x == pName))
                     results.ProceduresInvoked.Add(pName);
             }
+            else if(executeStatement.ExecuteSpecification.ExecutableEntity is ExecutableStringList executableStringList)
+            {
+                results.HasDynamicSQL = true;
+                foreach(ValueExpression valueExpression in executableStringList.Strings)
+                {
+                    if (valueExpression is StringLiteral stringLiteral)
+                        results.DynamicSQLStatements.Add(stringLiteral.Value);
+                }
+            }
             else
             {
                 Debug.WriteLine($"ExecutableEntity type (not analyzed): {executeStatement.ExecuteSpecification.ExecutableEntity.GetType().FullName}");
             }
         }
 
-        private void AnalyzeWhileStatement(WhileStatement whileStatement, ref ParserResults results)
+        private void AnalyzeWhileStatement(WhileStatement whileStatement, ParserResults results)
         {
             AnalyzeTsqlStatement(results, whileStatement.Statement);
         }
 
-        private void AnalyzeUpdateStatement(UpdateStatement updateStatement, ref ParserResults results)
+        private void AnalyzeUpdateStatement(UpdateStatement updateStatement, ParserResults results)
         {
+            updateStatement.PrintTSqlStatementBlockToDebugConsole();
+            List<TableParsingResult> temp = new List<TableParsingResult>();
+
             Dictionary<string, List<TableParsingResult>> cteModel = new Dictionary<string, List<TableParsingResult>>();
-            if(updateStatement.WithCtesAndXmlNamespaces?.CommonTableExpressions.Count > 0)
+            if (updateStatement.WithCtesAndXmlNamespaces?.CommonTableExpressions.Count > 0)
             {
-                foreach(CommonTableExpression cte in updateStatement.WithCtesAndXmlNamespaces.CommonTableExpressions)
+                foreach (CommonTableExpression cte in updateStatement.WithCtesAndXmlNamespaces.CommonTableExpressions)
                 {
                     AnalyzeCommonTableExpression(cteModel, cte);
                 }
@@ -213,7 +230,7 @@ namespace TSqlParser.Core
                 string tableName = ExtraceTableNameFromNamedTableRefernce(updateNamedTableReference, out string alias);
                 if (updateStatement.UpdateSpecification.FromClause == null)
                 {
-                    results.AddIfNotExists(tableName, SqlOperationType.UPDATE, alias);
+                    temp.AddIfNotExists(tableName, SqlOperationType.UPDATE, alias);
                 }
                 else
                 {
@@ -231,41 +248,28 @@ namespace TSqlParser.Core
                             }
                         }
                     }
-                    results.AddIfNotExists(items);
+                    temp.AddIfNotExists(items);
 
                     var result = items.Find(x => x.Alias == tableName);
                     if (result != null)
                         results.AddIfNotExists(result.TableName, SqlOperationType.UPDATE, tableName);
                 }
 
-                foreach(var setClause in updateStatement.UpdateSpecification.SetClauses)
+                foreach (var setClause in updateStatement.UpdateSpecification.SetClauses)
                 {
-                    if(setClause is AssignmentSetClause assignmentSetClause && assignmentSetClause.NewValue is ParenthesisExpression parenthesisExpression && parenthesisExpression.Expression is FunctionCall functionCall)
-                    {
-                        //foreach(var item in parenthesisExpression.Expression)
-                        foreach(var item in functionCall.Parameters)
-                        {
-                            if (item is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification)
-                            {
-                                var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause);
-                                results.AddIfNotExists(items);
-                            }
-
-                        }
-                    }
+                    temp.AddIfNotExists(ExtractTablesUsedInAssignmentClause(setClause));
                 }
+            }
 
-                //((Microsoft.SqlServer.TransactSql.ScriptDom.ParenthesisExpression)((Microsoft.SqlServer.TransactSql.ScriptDom.AssignmentSetClause)(new System.Collections.Generic.Mscorlib_CollectionDebugView<Microsoft.SqlServer.TransactSql.ScriptDom.SetClause>(updateStatement.UpdateSpecification.SetClauses).Items[0])).NewValue).Expression
-            }            
+            updateStatement.PrintTablesToDebugConsole(temp);
+            results.AddIfNotExists(temp);
         }
 
-        public void ExtractTablesUsedInAssignmentClause()
+        private void AnalyzeInsertStatement(InsertStatement insertStatement, ParserResults results)
         {
-            //((Microsoft.SqlServer.TransactSql.ScriptDom.ParenthesisExpression)((Microsoft.SqlServer.TransactSql.ScriptDom.AssignmentSetClause)(new System.Collections.Generic.Mscorlib_CollectionDebugView<Microsoft.SqlServer.TransactSql.ScriptDom.SetClause>(updateStatement.UpdateSpecification.SetClauses).Items[0])).NewValue).Expression
-        }
+            insertStatement.PrintTSqlStatementBlockToDebugConsole();
+            List<TableParsingResult> temp = new List<TableParsingResult>();
 
-        private void AnalyzeInsertStatement(InsertStatement insertStatement, ref ParserResults results)
-        {
             Dictionary<string, List<TableParsingResult>> cteModel = new Dictionary<string, List<TableParsingResult>>();
             if (insertStatement.WithCtesAndXmlNamespaces?.CommonTableExpressions.Count > 0)
             {
@@ -277,49 +281,32 @@ namespace TSqlParser.Core
             if (insertStatement.InsertSpecification.Target is NamedTableReference insertNamedTableReference)
             {
                 string tableName = ExtraceTableNameFromNamedTableRefernce(insertNamedTableReference, out string alias);
-                results.AddIfNotExists(tableName, SqlOperationType.INSERT, alias);
-                AnalyzeInsertSourceStatement(insertStatement, results, cteModel);
+                temp.AddIfNotExists(tableName, SqlOperationType.INSERT, alias);
+                var items = ExtractTablesFromInsertStatement(insertStatement, cteModel);
+                temp.AddIfNotExists(items);
             }
-            else if(insertStatement.InsertSpecification.Target is VariableTableReference variableTableReference)
+            else if (insertStatement.InsertSpecification.Target is VariableTableReference variableTableReference)
             {
-                results.AddIfNotExists(variableTableReference.Variable.Name, SqlOperationType.INSERT, null);
-                AnalyzeInsertSourceStatement(insertStatement, results, cteModel);
+                temp.AddIfNotExists(variableTableReference.Variable.Name, SqlOperationType.INSERT, null);
+                var items = ExtractTablesFromInsertStatement(insertStatement, cteModel);
+                temp.AddIfNotExists(items);
             }
-        }
 
-        private void AnalyzeInsertSourceStatement(InsertStatement insertStatement, ParserResults results, Dictionary<string, List<TableParsingResult>> cteModel)
-        {
-            if (insertStatement.InsertSpecification.InsertSource != null && insertStatement.InsertSpecification.InsertSource is SelectInsertSource selectInsertSource && selectInsertSource.Select is QuerySpecification selectQuerySpecification) //selectinsertsource
-            {
-                var items = ExtractTablesFromQuerySpecification(selectQuerySpecification); //ExtractTablesUsedInFromClause(selectQuerySpecification.FromClause);
-                if (cteModel.Count > 0)
-                {
-                    foreach (var cte in cteModel)
-                    {
-                        var item = items.Find(x => x.TableName == cte.Key);
-                        if (item != null)
-                        {
-                            items.Remove(item);
-                            foreach (var table in cte.Value)
-                                items.AddIfNotExists(table.TableName, table.OperationType, table.Alias);
-                        }
-                    }
-                }
-                results.AddIfNotExists(items);
-            }
+            insertStatement.PrintTablesToDebugConsole(temp);
+            results.AddIfNotExists(temp);
         }
-
+        
         private void AnalyzeCommonTableExpression(Dictionary<string, List<TableParsingResult>> cteModel, CommonTableExpression cte)
         {
-            string cteName = cte.ExpressionName.Value;
+            string cteName = cte.ExpressionName.Value.ToLower();
             if (cte.QueryExpression is QuerySpecification querySpecification)
             {
                 var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause);
 
-                // flatten out self refrencing ctes
+                // flatten out self rencing ctes
                 // ;with cte1 as (),
                 // cte2 as (select from cte1 inner join users)
-                foreach (var cte1 in cteModel) 
+                foreach (var cte1 in cteModel)
                 {
                     var item = items.Find(x => x.TableName == cte1.Key);
                     if (item != null)
@@ -333,21 +320,134 @@ namespace TSqlParser.Core
             }
         }
 
-        private void AnalyzeSelectStatement(SelectStatement selectStatement, ref ParserResults results)
+        private void AnalyzeSelectStatement(SelectStatement selectStatement, ParserResults results)
         {
-            if(selectStatement.QueryExpression is QuerySpecification selectQuerySpecification)
+            selectStatement.PrintTSqlStatementBlockToDebugConsole();
+            List<TableParsingResult> temp = new List<TableParsingResult>();
+            if (selectStatement.QueryExpression is QuerySpecification selectQuerySpecification)
             {
                 var result = ExtractTablesFromQuerySpecification(selectQuerySpecification); // ExtractTablesUsedInFromClause(selectQuerySpecification.FromClause);
-                foreach(SelectScalarExpression scalarExpression in selectQuerySpecification.SelectElements)
+                foreach (SelectElement selectElement in selectQuerySpecification.SelectElements)
                 {
-                    if(scalarExpression.Expression is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification)
+                    if (selectElement is SelectScalarExpression scalarExpression && scalarExpression.Expression is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification)
                     {
                         var items = ExtractTablesFromQuerySpecification(querySpecification);
-                        results.AddIfNotExists(items);
+                        temp.AddIfNotExists(items);
                     }
                 }
-                results.AddIfNotExists(result);
+                temp.AddIfNotExists(result);
             }
+            else if(selectStatement.QueryExpression is BinaryQueryExpression binaryQueryExpression)
+            {
+                var result = ExtractTablesFromBinaryQueryExpression(binaryQueryExpression);
+                temp.AddIfNotExists(result);
+            }
+
+            selectStatement.PrintTablesToDebugConsole(temp);
+            results.AddIfNotExists(temp);
+        }
+
+        private void AnalyzeMergeStatement(MergeStatement mergeStatement, ParserResults results)
+        {
+            mergeStatement.PrintTSqlStatementBlockToDebugConsole();
+            List<TableParsingResult> temp = new List<TableParsingResult>();
+
+            if (mergeStatement.MergeSpecification.Target is NamedTableReference mergeNamedTableReference)
+            {
+                string tableName = ExtraceTableNameFromNamedTableRefernce(mergeNamedTableReference, out string alias);
+                temp.AddIfNotExists(tableName, SqlOperationType.INSERT, alias);
+                temp.AddIfNotExists(tableName, SqlOperationType.UPDATE, alias);
+
+                if (mergeStatement.MergeSpecification.TableReference is QueryDerivedTable mergeQueryDerivedTable && mergeQueryDerivedTable.QueryExpression is QuerySpecification querySpecification)
+                {
+                    var result = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(mergeQuerySpecification.FromClause);
+                    temp.AddIfNotExists(result);
+                }
+            }
+
+            mergeStatement.PrintTablesToDebugConsole(temp);
+            results.AddIfNotExists(temp);
+        }
+
+        private void AnalyzeDeleteStatement(DeleteStatement deleteStatement, ParserResults results)
+        {
+            deleteStatement.PrintTSqlStatementBlockToDebugConsole();
+
+            if (deleteStatement.DeleteSpecification.Target is NamedTableReference deleteNamedTableReference)
+            {
+                string tableName = ExtraceTableNameFromNamedTableRefernce(deleteNamedTableReference, out string alias);
+                if (deleteStatement.DeleteSpecification.FromClause != null)
+                {
+                    var items = ExtractTablesUsedInFromClause(deleteStatement.DeleteSpecification.FromClause);
+                    var match = items.Find(x => x.Alias == tableName);
+                    if (match != null)
+                    {
+                        match.OperationType = SqlOperationType.DELETE;
+                    }
+                    results.AddIfNotExists(items);
+                }
+                else
+                    results.AddIfNotExists(tableName, SqlOperationType.DELETE, alias);
+            }
+        }
+
+        private void AnalyzeIfStatement(IfStatement ifStatement, ParserResults results)
+        {
+            ifStatement.PrintTSqlStatementBlockToDebugConsole();
+            if (ifStatement.Predicate is ExistsPredicate existsPredicate)
+            {
+                var items = ExtractTablesFromScalarSubQuery(existsPredicate.Subquery);
+                results.AddIfNotExists(items);
+            }
+
+            AnalyzeTsqlStatement(results, ifStatement.ThenStatement);
+            AnalyzeTsqlStatement(results, ifStatement.ElseStatement);
+        }
+        #endregion
+
+        #region Extract Table methods
+        private List<TableParsingResult> ExtractTablesFromInsertStatement(InsertStatement insertStatement, Dictionary<string, List<TableParsingResult>> cteModel)
+        {
+            List<TableParsingResult> result = new List<TableParsingResult>();
+            if (insertStatement.InsertSpecification.InsertSource != null && insertStatement.InsertSpecification.InsertSource is SelectInsertSource selectInsertSource) //selectinsertsource
+            {
+                if (selectInsertSource.Select is QuerySpecification selectQuerySpecification)
+                {
+                    var items = ExtractTablesFromQuerySpecification(selectQuerySpecification); //ExtractTablesUsedInFromClause(selectQuerySpecification.FromClause);
+                    if (cteModel.Count > 0)
+                    {
+                        foreach (var cte in cteModel)
+                        {
+                            var item = items.Find(x => x.TableName == cte.Key);
+                            if (item != null)
+                            {
+                                items.Remove(item);
+                                foreach (var table in cte.Value)
+                                    items.AddIfNotExists(table.TableName, table.OperationType, table.Alias);
+                            }
+                        }
+                    }
+                    result.AddIfNotExists(items);
+                }
+                else if(selectInsertSource.Select is BinaryQueryExpression binaryQueryExpression)
+                {
+                    var items = ExtractTablesFromBinaryQueryExpression(binaryQueryExpression);
+                    result.AddIfNotExists(items);
+                }                
+            }
+
+            return result;
+        }
+
+        private List<TableParsingResult> ExtractTablesFromScalarSubQuery(ScalarSubquery scalarSubquery)
+        {
+            List<TableParsingResult> result = new List<TableParsingResult>();
+            if(scalarSubquery.QueryExpression is QuerySpecification querySpecification)
+            {
+                var items = ExtractTablesFromQuerySpecification(querySpecification);
+                result.AddIfNotExists(items);
+            }
+            return result;
         }
 
         private List<TableParsingResult> ExtractTablesFromQuerySpecification(QuerySpecification querySpecification)
@@ -355,70 +455,89 @@ namespace TSqlParser.Core
             List<TableParsingResult> result = new List<TableParsingResult>();
             var items = ExtractTablesUsedInFromClause(querySpecification.FromClause);
             result.AddIfNotExists(items);
-            foreach(var selectExpression in querySpecification.SelectElements)
+            foreach (var selectExpression in querySpecification.SelectElements)
             {
-                if(selectExpression is SelectScalarExpression selectScalarExpression)
+                if (selectExpression is SelectScalarExpression selectScalarExpression)
                 {
-                    if (selectScalarExpression.Expression is ScalarSubquery scalarSubQuery && scalarSubQuery.QueryExpression is QuerySpecification querySpecificationChild)
+                    if (selectScalarExpression.Expression is ScalarSubquery scalarSubQuery)
                     {
-                        var items2 = ExtractTablesFromQuerySpecification(querySpecificationChild); // recursion path
+                        var items2 = ExtractTablesFromScalarSubQuery(scalarSubQuery); // recursion path
                         result.AddIfNotExists(items2);
                     }
-                    else if(selectScalarExpression.Expression is SearchedCaseExpression searchedCaseExpression)
+                    else if (selectScalarExpression.Expression is SearchedCaseExpression searchedCaseExpression)
                     {
-                        foreach(SearchedWhenClause whenClause in searchedCaseExpression.WhenClauses)
-                        {
-                            if(whenClause.ThenExpression is BinaryExpression binaryExpression && binaryExpression.SecondExpression is ScalarSubquery scalarSubQuery2 && scalarSubQuery2.QueryExpression is QuerySpecification querySpecificationGrandChild)
-                            {
-                                //binaryExpression.SecondExpression
-                                var items3 = ExtractTablesFromQuerySpecification(querySpecificationGrandChild);
-                                result.AddIfNotExists(items3);
-                            }
-                        }
+                        var items3 = ExtractTableNamesFromSearchedCaseExpression(searchedCaseExpression);
+                        result.AddIfNotExists(items3);
                     }
-                    else if(selectScalarExpression.Expression is FunctionCall functionCall)
-                    {                        
-                        foreach(var item in functionCall.Parameters)
+                    else if (selectScalarExpression.Expression is FunctionCall functionCall)
+                    {
+                        foreach (ScalarExpression item in functionCall.Parameters)
                         {
-                            if(item is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification4)
+                            if (item is ScalarSubquery scalarSubquery)
                             {
-                                var items4 = ExtractTablesFromQuerySpecification(querySpecification4);
+                                var items4 = ExtractTablesFromScalarSubQuery(scalarSubquery);
                                 result.AddIfNotExists(items4);
                             }
+                            else
+                            {
+                                Debug.WriteLine($"ScalarExpression {selectExpression.GetType().FullName} not analyzed");
+                            }
                         }
                     }
+                    else
+                    {
+                        Debug.WriteLine($"SelectScalarExpression {selectExpression.GetType().FullName} not analyzed");
+                    }
                 }
-                else //if(selectExpression is SearchedCaseExpression searchedCaseExpression)
+                else if(selectExpression is SelectSetVariable selectSetVariable)
                 {
-                    Debug.WriteLine($"{selectExpression.GetType().FullName} not analyzed");
+                    if(selectSetVariable.Expression is SearchedCaseExpression searchedCaseExpression)
+                    {
+                        var items5 = ExtractTableNamesFromSearchedCaseExpression(searchedCaseExpression);
+                        result.AddIfNotExists(items5);
+                    }
+                }
+                else 
+                {
+                    Debug.WriteLine($"SelectScalarExpression {selectExpression.GetType().FullName} not analyzed");
                 }
             }
             return result;
         }
 
-        private void AnalyzeMergeStatement(MergeStatement mergeStatement, ref ParserResults results)
+        private List<TableParsingResult> ExtractTableNamesFromSearchedCaseExpression(SearchedCaseExpression searchedCaseExpression)
         {
-            if (mergeStatement.MergeSpecification.Target is NamedTableReference mergeNamedTableReference)
+            List<TableParsingResult> result = new List<TableParsingResult>();
+            foreach (SearchedWhenClause whenClause in searchedCaseExpression.WhenClauses)
             {
-                string tableName = ExtraceTableNameFromNamedTableRefernce(mergeNamedTableReference, out string alias);
-                results.AddIfNotExists(tableName, SqlOperationType.INSERT, alias);
-                results.AddIfNotExists(tableName, SqlOperationType.UPDATE, alias);
-                
-                if (mergeStatement.MergeSpecification.TableReference is QueryDerivedTable mergeQueryDerivedTable && mergeQueryDerivedTable.QueryExpression is QuerySpecification querySpecification)
+                if (whenClause.ThenExpression is BinaryExpression binaryExpression)
                 {
-                    var result = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(mergeQuerySpecification.FromClause);
-                    results.AddIfNotExists(result);
+                    var items1 = ExtractTablesFromBinaryExpression(binaryExpression);
+                    result.AddIfNotExists(items1);
+                }
+                else
+                {
+                    Debug.WriteLine($"SearchedWhenClause {whenClause.GetType().FullName} not analyzed");
                 }
             }
+            return result;
         }
 
-        private void AnalyzeDeleteStatement(DeleteStatement deleteStatement, ref ParserResults results)
+        private List<TableParsingResult> ExtractTablesFromBinaryExpression(BinaryExpression binaryExpression)
         {
-            if (deleteStatement.DeleteSpecification.Target is NamedTableReference deleteNamedTableReference)
+            List<TableParsingResult> result = new List<TableParsingResult>();
+            if (binaryExpression.FirstExpression is ScalarSubquery scalarSubQuery1)
             {
-                string tableName = ExtraceTableNameFromNamedTableRefernce(deleteNamedTableReference, out string alias);
-                results.AddIfNotExists(tableName, SqlOperationType.DELETE, alias);
+                var items1 = ExtractTablesFromScalarSubQuery(scalarSubQuery1);
+                result.AddIfNotExists(items1);
             }
+
+            if (binaryExpression.SecondExpression is ScalarSubquery scalarSubQuery2)
+            {
+                var items2 = ExtractTablesFromScalarSubQuery(scalarSubQuery2);
+                result.AddIfNotExists(items2);
+            }
+            return result;
         }
 
         private List<TableParsingResult> ExtractTablesUsedInFromClause(FromClause fromClause)
@@ -426,11 +545,11 @@ namespace TSqlParser.Core
             List<TableParsingResult> result = new List<TableParsingResult>();
             if (fromClause == null)
                 return result;
-            
+
             foreach (TableReference tableReference in fromClause.TableReferences)
             {
-                if(tableReference is JoinTableReference joinTableReference) // can be of type Qualified or UnqualifiedJoin but we care only about the abstract type
-                {   
+                if (tableReference is JoinTableReference joinTableReference) // can be of type Qualified or UnqualifiedJoin but we care only about the abstract type
+                {
                     do
                     {
                         if (joinTableReference.SecondTableReference is NamedTableReference namedTableReference)
@@ -445,7 +564,7 @@ namespace TSqlParser.Core
                             result.AddIfNotExists(tableName, SqlOperationType.SELECT, alias);
                         }
 
-                        if(joinTableReference.SecondTableReference is QueryDerivedTable queryDerivedTable && queryDerivedTable.QueryExpression is QuerySpecification querySpecification)
+                        if (joinTableReference.SecondTableReference is QueryDerivedTable queryDerivedTable && queryDerivedTable.QueryExpression is QuerySpecification querySpecification)
                         {
                             string alias = null;
                             if (queryDerivedTable.Alias != null)
@@ -462,15 +581,15 @@ namespace TSqlParser.Core
                     }
                     while (joinTableReference != null);
                 }
-                else if(tableReference is NamedTableReference namedTableReference)
+                else if (tableReference is NamedTableReference namedTableReference)
                 {
                     string tableName = ExtraceTableNameFromNamedTableRefernce(namedTableReference, out string alias);
                     result.AddIfNotExists(tableName, SqlOperationType.SELECT, alias);
                 }
-                else if(tableReference is QueryDerivedTable queryDerivedTable && queryDerivedTable.QueryExpression is QuerySpecification querySpecification)
+                else if (tableReference is QueryDerivedTable queryDerivedTable && queryDerivedTable.QueryExpression is QuerySpecification querySpecification)
                 {
                     string alias = null;
-                    if(queryDerivedTable.Alias != null)
+                    if (queryDerivedTable.Alias != null)
                         alias = queryDerivedTable.Alias.Value;
 
                     var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause); // recursion path
@@ -508,10 +627,52 @@ namespace TSqlParser.Core
             }
             else
             {
-                throw new NotImplementedException();
+                //throw new NotImplementedException();
             }
 
             return string.IsNullOrWhiteSpace(schema) ? tableName : $"{schema}.{tableName}";
         }
+
+        private List<TableParsingResult> ExtractTablesUsedInAssignmentClause(SetClause setClause)
+        {
+            List<TableParsingResult> result = new List<TableParsingResult>();
+            if (setClause is AssignmentSetClause assignmentSetClause && assignmentSetClause.NewValue is ParenthesisExpression parenthesisExpression && parenthesisExpression.Expression is FunctionCall functionCall)
+            {
+                //foreach(var item in parenthesisExpression.Expression)
+                foreach (var item in functionCall.Parameters)
+                {
+                    if (item is ScalarSubquery scalarSubquery && scalarSubquery.QueryExpression is QuerySpecification querySpecification)
+                    {
+                        var items = ExtractTablesFromQuerySpecification(querySpecification); //ExtractTablesUsedInFromClause(querySpecification.FromClause);
+                        result.AddIfNotExists(items);
+                    }
+                }
+            }
+            return result;
+        }
+
+        private List<TableParsingResult> ExtractTablesFromBinaryQueryExpression(BinaryQueryExpression binaryQueryExpression)
+        {
+            List<TableParsingResult> result = new List<TableParsingResult>();
+            if(binaryQueryExpression.FirstQueryExpression is BinaryQueryExpression binaryQueryExpression2)
+            {
+                var items = ExtractTablesFromBinaryQueryExpression(binaryQueryExpression2);
+                result.AddIfNotExists(items);
+            }
+            else if (binaryQueryExpression.FirstQueryExpression is QuerySpecification querySpecification1)
+            {
+                var items = ExtractTablesFromQuerySpecification(querySpecification1);
+                result.AddIfNotExists(items);
+            }
+            if (binaryQueryExpression.SecondQueryExpression is QuerySpecification querySpecification2)
+            {
+                var items = ExtractTablesFromQuerySpecification(querySpecification2);
+                result.AddIfNotExists(items);
+            }
+            return result;
+        }
+        #endregion
+
+        
     }
 }

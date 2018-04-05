@@ -34,6 +34,11 @@ namespace TSqlParser.Core
         /// </value>
         public List<TableParsingResult> TableParsingResults { get; set; } = new List<TableParsingResult>();
 
+        public bool HasDynamicSQL { get; set; }
+
+        public List<string> DynamicSQLStatements { get; set; } = new List<string>();
+        
+
         /// <summary>
         /// Gets a value indicating whether this instance has parsing exception.
         /// </summary>
