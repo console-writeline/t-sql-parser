@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 namespace TSqlParser.Core
 {
@@ -33,6 +34,11 @@ namespace TSqlParser.Core
         /// </value>
         public List<TableParsingResult> TableParsingResults { get; set; } = new List<TableParsingResult>();
 
+        public bool HasDynamicSQL { get; set; }
+
+        public List<string> DynamicSQLStatements { get; set; } = new List<string>();
+        
+
         /// <summary>
         /// Gets a value indicating whether this instance has parsing exception.
         /// </summary>
@@ -63,7 +69,7 @@ namespace TSqlParser.Core
             if(this.TableParsingResults.Count > 0)
                 sb.AppendLine($"\tTables touched ::");
 
-            foreach (var table in this.TableParsingResults)
+            foreach (var table in this.TableParsingResults.OrderBy(x=>x.TableName))
             {
                 sb.AppendLine($"\t\t{table.TableName} - {table.OperationType}");
             }
