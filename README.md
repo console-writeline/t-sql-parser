@@ -1,5 +1,5 @@
 # TSqlParser
-Reference TSqlParser and init SqlScriptAnalyzer. The ParserResults object has the collection of tables and stored procedures invoked. 
+Reference TSqlParser.Core.dll and init SqlScriptAnalyzer. The ParserResults object has the collection of tables and stored procedures invoked. 
 
 ```c#
 string _sqlText = "INSERT INTO table1
@@ -21,5 +21,5 @@ Parsing Result
 	- Procedures Invoked 
 		- pr_some_inner_procedure
 
-code on github @ https://github.com/console-writeline/t-sql-parser
-nuget package @ https://www.nuget.org/packages/TSqlParser
+code on github @ <https://github.com/console-writeline/t-sql-parser>
+nuget package @ <https://www.nuget.org/packages/TSqlParser>
