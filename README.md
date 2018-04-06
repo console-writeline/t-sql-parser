@@ -20,3 +20,6 @@ Parsing Result
     - table2 - SELECT
 	- Procedures Invoked 
 		- pr_some_inner_procedure
+
+code on github @ https://github.com/console-writeline/t-sql-parser
+nuget package @ https://www.nuget.org/packages/TSqlParser
