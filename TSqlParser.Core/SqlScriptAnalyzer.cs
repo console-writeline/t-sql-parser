@@ -106,11 +106,11 @@ namespace TSqlParser.Core
         {
             if (statement is null)
                 return results;
-
+            
             if (statement is CreateProcedureStatement createProcedureStatement)
-                AnalyzeCreateProcedureStatement(createProcedureStatement, results); 
+                AnalyzeCreateProcedureStatement(createProcedureStatement, results);
             if (statement is BeginEndBlockStatement beginEndBlockStatement)
-                AnalyzeBeginEndBlockStatement(beginEndBlockStatement, results); 
+                AnalyzeBeginEndBlockStatement(beginEndBlockStatement, results);
             else if (statement is UpdateStatement updateStatement)
                 AnalyzeUpdateStatement(updateStatement, results);
             else if (statement is InsertStatement insertStatement)
@@ -122,13 +122,15 @@ namespace TSqlParser.Core
             else if (statement is DeleteStatement deleteStatement)
                 AnalyzeDeleteStatement(deleteStatement, results);
             else if (statement is TryCatchStatement tryCatchStatement)
-                AnalyzeTryCatchStatement(tryCatchStatement, results); 
+                AnalyzeTryCatchStatement(tryCatchStatement, results);
             else if (statement is WhileStatement whileStatement)
                 AnalyzeWhileStatement(whileStatement, results);
             else if (statement is ExecuteStatement executeStatement)
                 AnalyzeExecuteStatement(executeStatement, results);
             else if (statement is IfStatement ifStatement)
                 AnalyzeIfStatement(ifStatement, results);
+            else if (statement is DeclareVariableStatement declareVariableStatement)
+                AnalyzeDeclareVariableStatement(declareVariableStatement, results);
             else
             {
                 //TODO
@@ -153,6 +155,18 @@ namespace TSqlParser.Core
                 return;
 
             AnalyzeTsqlStatementList(beginEndBlockStatement.StatementList, results);
+        }
+
+        private void AnalyzeDeclareVariableStatement(DeclareVariableStatement declareVariableStatement, ParserResults results)
+        {
+            foreach(DeclareVariableElement element in declareVariableStatement.Declarations)
+            {
+                if(element.Value is ScalarSubquery scalarSubquery)
+                {
+                    var items = ExtractTablesFromScalarSubQuery(scalarSubquery);
+                    results.AddIfNotExists(items);
+                }
+            }
         }
 
         private void AnalyzeTryCatchStatement(TryCatchStatement tryCatchStatement, ParserResults results)
